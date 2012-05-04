@@ -272,8 +272,7 @@ class DatabaseOperations(BaseDatabaseOperations):
         """
         if value is None:
             return None
-        # SQL Server doesn't support microseconds
-        return value.replace(microsecond=0)
+        return value
 
     def value_to_db_time(self, value):
         """
@@ -343,4 +342,4 @@ class DatabaseOperations(BaseDatabaseOperations):
         elif value is not None and field and field.get_internal_type() == 'FloatField':
             value = float(value)
         return value
-        
+
