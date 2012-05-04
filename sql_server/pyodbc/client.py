@@ -1,24 +1,29 @@
-from django.db.backends import BaseDatabaseClient
+import subprocess
 import os
-import sys
+
+from django.db.backends import BaseDatabaseClient
+
+
+IS_WINDOWS = (os.name == 'nt')
+
 
 class DatabaseClient(BaseDatabaseClient):
-    if os.name=='nt':
-        executable_name = 'osql'
-    else:
-        executable_name = 'isql'
+
+    def get_executable_name(self):
+        return 'osql' if IS_WINDOWS else 'isql'
 
     def runshell(self):
         settings_dict = self.connection.settings_dict
-        user = settings_dict['DATABASE_OPTIONS'].get('user', settings_dict['DATABASE_USER'])
-        password = settings_dict['DATABASE_OPTIONS'].get('passwd', settings_dict['DATABASE_PASSWORD'])
-        if os.name=='nt':
-            db = settings_dict['DATABASE_OPTIONS'].get('db', settings_dict['DATABASE_NAME'])
-            server = settings_dict['DATABASE_OPTIONS'].get('host', settings_dict['DATABASE_HOST'])
-            port = settings_dict['DATABASE_OPTIONS'].get('port', settings_dict['DATABASE_PORT'])
-            defaults_file = settings_dict['DATABASE_OPTIONS'].get('read_default_file')
+        user = settings_dict['USER']
+        password = settings_dict['PASSWORD']
 
-            args = [self.executable_name]
+        if IS_WINDOWS:
+            db = settings_dict['NAME']
+            server = settings_dict['HOST']
+            #port = settings_dict['PORT']  # never used?
+            defaults_file = settings_dict['OPTIONS'].get('read_default_file')
+
+            args = [self.get_executable_name()]
             if server:
                 args += ["-S", server]
             if user:
@@ -26,18 +31,16 @@ class DatabaseClient(BaseDatabaseClient):
                 if password:
                     args += ["-P", password]
             else:
-                args += ["-E"] # Try trusted connection instead
+                args += ["-E"]  # Try trusted connection instead
             if db:
                 args += ["-d", db]
             if defaults_file:
                 args += ["-i", defaults_file]
         else:
-            dsn = settings_dict['DATABASE_OPTIONS'].get('dsn', settings_dict['DATABASE_ODBC_DSN'])
-            args = ['%s -v %s %s %s' % (self.executable_name, dsn, user, password)]
+            dsn = settings_dict['OPTIONS']['dsn']
+            args = ['%s -v %s %s %s' % (self.get_executable_name(),
+                dsn, user, password)]
 
-        # XXX: This works only with Python >= 2.4 because subprocess was added
-        # in that release
-        import subprocess
         try:
             subprocess.call(args, shell=True)
         except KeyboardInterrupt:
