@@ -284,7 +284,7 @@ class DatabaseOperations(BaseDatabaseOperations):
         # SQL Server doesn't support microseconds
         if isinstance(value, basestring):
             return datetime.datetime(*(time.strptime(value, '%H:%M:%S')[:6]))
-        return datetime.datetime(1900, 1, 1, value.hour, value.minute, value.second)
+        return datetime.datetime(1900, 1, 1, value.hour, value.minute, value.second, value.microsecond)
 
     def year_lookup_bounds(self, value):
         """
