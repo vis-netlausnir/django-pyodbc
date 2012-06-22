@@ -284,7 +284,7 @@ class DatabaseOperations(BaseDatabaseOperations):
         # SQL Server doesn't support microseconds
         if isinstance(value, basestring):
             return datetime.datetime(*(time.strptime(value, '%H:%M:%S')[:6]))
-        return datetime.datetime(1900, 1, 1, value.hour, value.minute, value.second)
+        return datetime.datetime(1900, 1, 1, value.hour, value.minute, value.second, value.microsecond)
 
     def year_lookup_bounds(self, value):
         """
@@ -327,7 +327,10 @@ class DatabaseOperations(BaseDatabaseOperations):
         elif field and field.get_internal_type() == 'DateField':
             value = value.date() # extract date
         elif field and field.get_internal_type() == 'TimeField' or (isinstance(value, datetime.datetime) and value.year == 1900 and value.month == value.day == 1):
+            if isinstance(value,unicode) or isinstance(value,str):
+                value = datetime.datetime.strptime(value[0:14], "%H:%M:%S.%f")
             value = value.time() # extract time
+
         # Some cases (for example when select_related() is used) aren't
         # caught by the DateField case above and date fields arrive from
         # the DB as datetime instances.
